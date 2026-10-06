@@ -114,6 +114,37 @@ const internalLinks = document.querySelectorAll('a[href^="#"]');
 const navLinks = document.querySelectorAll('nav a[href^="#"]');
 const nav = document.querySelector('nav');
 
+// Theme is dark by default; remember an explicit choice when storage is available.
+const themeToggle = document.querySelector('.theme-toggle');
+
+function setTheme(theme, persist = false) {
+    const isLight = theme === 'light';
+    document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
+
+    if (themeToggle) {
+        const label = `Switch to ${isLight ? 'dark' : 'light'} theme`;
+        themeToggle.innerHTML = `<i class="bi ${isLight ? 'bi-moon-fill' : 'bi-sun-fill'}" aria-hidden="true"></i>`;
+        themeToggle.setAttribute('aria-label', label);
+        themeToggle.setAttribute('title', label);
+        themeToggle.setAttribute('aria-pressed', String(isLight));
+    }
+
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isLight ? '#f4f7fb' : '#080d15');
+
+    if (persist) {
+        try {
+            localStorage.setItem('ridho-theme', isLight ? 'light' : 'dark');
+        } catch (error) {
+            console.warn('Unable to save the theme preference.', error);
+        }
+    }
+}
+
+setTheme(document.documentElement.dataset.theme || 'dark');
+themeToggle?.addEventListener('click', () => {
+    setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true);
+});
+
 internalLinks.forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         const targetId = this.getAttribute('href')?.slice(1);
