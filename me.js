@@ -1,9 +1,11 @@
 // Generate random stars
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 function generateStars() {
     const starfield = document.getElementById('starfield');
-    if (!starfield) return;
+    if (!starfield || prefersReducedMotion) return;
 
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 48; i++) {
         const star = document.createElement('div');
         star.className = 'star';
         const size = Math.random() * 3 + 1;
@@ -23,15 +25,19 @@ function initMeshBackground() {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const particles = [];
-    const particleCount = 60;
+    const particleCount = window.innerWidth < 768 ? 24 : 42;
+    let animationFrame;
 
     function resizeCanvas() {
-        canvas.width = window.innerWidth * window.devicePixelRatio;
-        canvas.height = window.innerHeight * window.devicePixelRatio;
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+        canvas.width = window.innerWidth * pixelRatio;
+        canvas.height = window.innerHeight * pixelRatio;
         canvas.style.width = window.innerWidth + 'px';
         canvas.style.height = window.innerHeight + 'px';
-        ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     }
 
     function createParticles() {
@@ -79,7 +85,9 @@ function initMeshBackground() {
             }
         });
 
-        requestAnimationFrame(drawMesh);
+        if (!prefersReducedMotion && !document.hidden) {
+            animationFrame = requestAnimationFrame(drawMesh);
+        }
     }
 
     resizeCanvas();
@@ -89,21 +97,45 @@ function initMeshBackground() {
     window.addEventListener('resize', () => {
         resizeCanvas();
         createParticles();
+        if (prefersReducedMotion) drawMesh();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animationFrame);
+        } else if (!prefersReducedMotion) {
+            drawMesh();
+        }
     });
 }
 
-// Smooth scroll navigation
-const navLinks = document.querySelectorAll('a[href^="#"]');
-navLinks.forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        const targetId = this.getAttribute('href');
-        if (!targetId || targetId === '#') return;
+// Smooth scroll internal links without adding a fragment to the URL.
+const internalLinks = document.querySelectorAll('a[href^="#"]');
+const navLinks = document.querySelectorAll('nav a[href^="#"]');
+const nav = document.querySelector('nav');
 
-        const target = document.querySelector(targetId);
+internalLinks.forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        const targetId = this.getAttribute('href')?.slice(1);
+        if (!targetId) return;
+
+        const target = document.getElementById(targetId);
         if (!target) return;
 
         e.preventDefault();
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const targetPosition = target.getBoundingClientRect().top + window.scrollY;
+        const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+        const destinationProgress = scrollableDistance > 0
+            ? targetPosition / scrollableDistance
+            : 0;
+        const navWillBeVisible = nav?.classList.contains('is-visible') || destinationProgress >= 0.15;
+        const navOffset = navWillBeVisible && nav ? nav.offsetHeight + 24 : 24;
+        const top = targetPosition - navOffset;
+
+        window.scrollTo({
+            top: Math.max(0, top),
+            behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
     });
 });
 
@@ -113,16 +145,20 @@ const observerOptions = {
     rootMargin: '0px 0px -50px 0px'
 };
 
-const observer = new IntersectionObserver(function(entries) {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-            observer.unobserve(entry.target);
-        }
-    });
-}, observerOptions);
+if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
 
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+} else {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+}
 
 // Active nav link on scroll
 function setActiveNav() {
@@ -147,13 +183,30 @@ function setActiveNav() {
 window.addEventListener('scroll', setActiveNav, { passive: true });
 window.addEventListener('load', setActiveNav);
 
+function setStickyNav() {
+    if (!nav) return;
+
+    const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollProgress = scrollableDistance > 0 ? window.scrollY / scrollableDistance : 0;
+    const isVisible = scrollProgress >= 0.15;
+
+    nav.classList.toggle('is-visible', isVisible);
+}
+
+window.addEventListener('scroll', setStickyNav, { passive: true });
+window.addEventListener('resize', setStickyNav, { passive: true });
+window.addEventListener('load', setStickyNav);
+setStickyNav();
+
 // Initialize
 generateStars();
 initMeshBackground();
 
 // Typing effect
 const typingElement = document.querySelector('.typing-effect');
-if (typingElement) {
+if (typingElement && prefersReducedMotion) {
+    typingElement.textContent = 'Custom OJS templates, plugins, and scholarly publishing systems.';
+} else if (typingElement) {
     const texts = [
         'Custom OJS templates & journals...',
         'Publication systems & plugins...',
@@ -189,50 +242,4 @@ if (typingElement) {
     }
 
     typeEffect();
-}
-
-// Advanced hover motion for cards
-const interactiveCards = document.querySelectorAll('.service-box, .skill-category, .timeline-item, .stat-mini, .float-card, .metric-pill');
-
-document.addEventListener('mousemove', (e) => {
-    const x = e.clientX;
-    const y = e.clientY;
-
-    interactiveCards.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const distance = Math.hypot(x - centerX, y - centerY);
-
-        if (distance < 260) {
-            const rotateY = ((x - centerX) / rect.width) * 12;
-            const rotateX = ((centerY - y) / rect.height) * 12;
-            el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
-        } else if (el.style.transform) {
-            el.style.transform = '';
-        }
-    });
-});
-
-const heroCards = document.querySelectorAll('.float-card');
-if (heroCards.length) {
-    window.addEventListener('pointermove', (event) => {
-        const offsetX = (event.clientX / window.innerWidth - 0.5) * 12;
-        const offsetY = (event.clientY / window.innerHeight - 0.5) * 12;
-
-        heroCards.forEach((card, index) => {
-            const direction = index % 2 === 0 ? 1 : -1;
-            card.style.transform = `translate(${offsetX * direction}px, ${offsetY * direction}px)`;
-        });
-    }, { passive: true });
-}
-
-// Hero slight parallax
-const hero = document.querySelector('.hero');
-if (hero) {
-    window.addEventListener('pointermove', (event) => {
-        const x = (event.clientX / window.innerWidth - 0.5) * 16;
-        const y = (event.clientY / window.innerHeight - 0.5) * 16;
-        hero.style.backgroundPosition = `${50 + x}% ${50 + y}%`;
-    }, { passive: true });
 }
