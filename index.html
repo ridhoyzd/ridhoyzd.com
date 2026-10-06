@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="mesh-canvas-wrap" aria-hidden="true"><canvas id="meshCanvas"></canvas></div>
     <div class="plasma-bg"></div>
     <div class="animated-background"></div>
     <div class="bg-stars" id="starfield"></div>
@@ -27,7 +28,7 @@
     <!-- HERO SECTION -->
     <section class="hero">
         <div class="container">
-            <div class="hero-content">
+            <div class="hero-content reveal">
                 <div class="hero-subtitle">&lt; OJS SPECIALIST / JOURNAL SYSTEMS &gt;</div>
                 <h1>RIDHO<br><span>PUBLICATION</span></h1>
                 <p>
@@ -38,7 +39,36 @@
                     <a href="#about" class="btn">About Me</a>
                     <a href="#experience" class="btn btn-secondary">View Experience</a>
                 </div>
+
+                <div class="hero-metrics" aria-label="Key performance metrics">
+                    <div class="metric-pill">
+                        <span class="metric-number">15+</span>
+                        <span class="metric-label">Years building digital systems</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span class="metric-number">3.3/3.4/3.5</span>
+                        <span class="metric-label">OJS specialization</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span class="metric-number">Custom</span>
+                        <span class="metric-label">Templates · plugins · workflows</span>
+                    </div>
+                </div>
             </div>
+
+            <div class="hero-floating" aria-hidden="true">
+                <div class="float-card float-card-left reveal">
+                    <span class="float-label">Focus</span>
+                    <strong>Academic Publishing</strong>
+                    <small>OJS · PKP · Journal Platform Ops</small>
+                </div>
+                <div class="float-card float-card-right reveal">
+                    <span class="float-label">Built for</span>
+                    <strong>Research Institutions</strong>
+                    <small>Custom themes, plugins & workflows</small>
+                </div>
+            </div>
+
             <div class="scroll-indicator">
                 <span></span>
             </div>
