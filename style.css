@@ -577,9 +577,124 @@ h2::after {
 
 .about-content {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 48px;
+    grid-template-columns: 1.2fr 0.9fr;
+    gap: 60px;
+    align-items: flex-start;
+}
+
+.profile-section {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
     align-items: center;
+}
+
+.about-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+}
+
+.profile-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.profile-image-frame {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    aspect-ratio: 1;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 24px;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 0 50px rgba(126, 249, 198, 0.3), 0 0 80px rgba(90, 214, 255, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-image:hover {
+    transform: scale(1.02) translateY(-8px);
+    box-shadow: 0 0 70px rgba(126, 249, 198, 0.45), 0 0 100px rgba(90, 214, 255, 0.25);
+}
+
+.profile-image-glow {
+    position: absolute;
+    inset: -12px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(126, 249, 198, 0.35), rgba(90, 214, 255, 0.25));
+    z-index: 1;
+    opacity: 0.65;
+    filter: blur(16px);
+    animation: profileGlow 3s ease-in-out infinite;
+}
+
+.profile-image-border {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    border: 2.5px solid rgba(126, 249, 198, 0.55);
+    z-index: 3;
+    background: linear-gradient(135deg, 
+        rgba(126, 249, 198, 0.18) 0%, 
+        rgba(126, 249, 198, 0.08) 50%, 
+        rgba(90, 214, 255, 0.12) 100%);
+}
+
+@keyframes profileGlow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(126, 249, 198, 0.4), 0 0 40px rgba(90, 214, 255, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 35px rgba(126, 249, 198, 0.6), 0 0 65px rgba(90, 214, 255, 0.35);
+    }
+}
+
+.stats-mini {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 380px;
+}
+
+.stat-mini {
+    background: linear-gradient(180deg, rgba(126, 249, 198, 0.1), rgba(8, 18, 27, 0.8));
+    border: 1.5px solid rgba(126, 249, 198, 0.3);
+    padding: 24px 16px;
+    border-radius: 16px;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    box-shadow: inset 0 0 25px rgba(126, 249, 198, 0.05), 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.stat-mini:hover {
+    background: linear-gradient(180deg, rgba(126, 249, 198, 0.18), rgba(8, 18, 27, 0.85));
+    border-color: rgba(126, 249, 198, 0.6);
+    box-shadow: 0 0 28px rgba(126, 249, 198, 0.25), inset 0 0 20px rgba(126, 249, 198, 0.08);
+    transform: translateY(-6px);
+}
+
+.stat-mini .number {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    color: var(--primary);
+    font-weight: 900;
+    text-shadow: 0 0 12px rgba(126, 249, 198, 0.4);
+}
+
+.stat-mini .label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .about-text h3 {
@@ -1427,8 +1542,39 @@ footer {
         font-size: 2rem;
     }
 
+    .about-wrapper {
+        gap: 32px;
+    }
+
     .about-content {
         grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .profile-section {
+        order: 2;
+    }
+
+    .about-text {
+        order: 1;
+    }
+
+    .profile-image-container {
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    .profile-image-frame {
+        max-width: 100%;
+    }
+
+    .stats-mini {
+        max-width: 100%;
+    }
+
+    .focus-card {
+        padding: 32px 24px !important;
     }
 
     .timeline::before {
@@ -1889,14 +2035,21 @@ h2::after {
 }
 
 .focus-card {
-    padding: 42px !important;
-    border: 1px solid rgba(105, 240, 192, 0.2) !important;
-    border-radius: 20px !important;
+    padding: 48px !important;
+    border: 1.5px solid rgba(126, 249, 198, 0.3) !important;
+    border-radius: 24px !important;
     background:
-        radial-gradient(ellipse at top right, rgba(105, 240, 192, 0.1), transparent 48%),
-        linear-gradient(145deg, rgba(18, 29, 43, 0.92), rgba(12, 20, 31, 0.92)) !important;
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24) !important;
+        radial-gradient(ellipse at top right, rgba(126, 249, 198, 0.12), transparent 50%),
+        linear-gradient(145deg, rgba(18, 29, 43, 0.95), rgba(12, 20, 31, 0.92)) !important;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(126, 249, 198, 0.05) !important;
     text-align: left !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.focus-card:hover {
+    border-color: rgba(126, 249, 198, 0.5) !important;
+    box-shadow: 0 32px 100px rgba(0, 0, 0, 0.35), inset 0 0 40px rgba(126, 249, 198, 0.08) !important;
+    transform: translateY(-8px);
 }
 
 .focus-card .elite-icon {
@@ -2517,11 +2670,16 @@ html[data-theme="light"] .about-text h3 {
 }
 
 html[data-theme="light"] .focus-card {
-    border-color: rgba(8, 132, 95, 0.2) !important;
+    border-color: rgba(8, 132, 95, 0.35) !important;
     background:
-        radial-gradient(ellipse at top right, rgba(8, 132, 95, 0.08), transparent 48%),
-        linear-gradient(145deg, #fff, #edf3f7) !important;
-    box-shadow: 0 22px 60px rgba(31, 50, 72, 0.1) !important;
+        radial-gradient(ellipse at top right, rgba(8, 132, 95, 0.12), transparent 50%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(239, 244, 248, 0.95)) !important;
+    box-shadow: 0 28px 80px rgba(31, 50, 72, 0.15), inset 0 0 30px rgba(8, 132, 95, 0.05) !important;
+}
+
+html[data-theme="light"] .focus-card:hover {
+    border-color: rgba(8, 132, 95, 0.5) !important;
+    box-shadow: 0 32px 100px rgba(31, 50, 72, 0.2), inset 0 0 40px rgba(8, 132, 95, 0.08) !important;
 }
 
 html[data-theme="light"] .focus-card h3 {
@@ -2541,6 +2699,27 @@ html[data-theme="light"] .code-block {
     border-color: rgba(8, 132, 95, 0.2);
     background: #edf4f5;
     box-shadow: inset 0 0 24px rgba(8, 132, 95, 0.025);
+}
+
+html[data-theme="light"] .profile-image {
+    box-shadow: 0 0 40px rgba(8, 132, 95, 0.3);
+}
+
+html[data-theme="light"] .profile-image:hover {
+    box-shadow: 0 0 60px rgba(8, 132, 95, 0.4), 0 0 80px rgba(96, 137, 231, 0.25);
+}
+
+html[data-theme="light"] .profile-image-border {
+    border-color: rgba(8, 132, 95, 0.6);
+    background: linear-gradient(135deg, 
+        rgba(8, 132, 95, 0.2) 0%, 
+        rgba(8, 132, 95, 0.1) 50%, 
+        rgba(96, 137, 231, 0.15) 100%);
+}
+
+html[data-theme="light"] .profile-image-glow {
+    background: linear-gradient(135deg, rgba(8, 132, 95, 0.4), rgba(96, 137, 231, 0.25));
+    opacity: 0.8;
 }
 
 html[data-theme="light"] h2 {
