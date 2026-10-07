@@ -27,6 +27,8 @@
 
 html {
     scroll-behavior: smooth;
+    -webkit-scroll-behavior: smooth;
+    scrollbar-gutter: stable;
 }
 
 body {
@@ -40,6 +42,9 @@ body {
     line-height: 1.6;
     overflow-x: hidden;
     position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: scroll-position;
 }
 
 body::before,
@@ -49,11 +54,15 @@ body::after {
     width: 38rem;
     height: 38rem;
     border-radius: 50%;
+    -webkit-filter: blur(110px);
+    -moz-filter: blur(110px);
     filter: blur(110px);
     pointer-events: none;
     z-index: -2;
     opacity: 0.22;
     animation: orbFloat 18s ease-in-out infinite alternate;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 body::before {
@@ -168,6 +177,8 @@ nav {
     border-bottom: 1px solid rgba(126, 249, 198, 0.12);
     z-index: 1000;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .logo {
@@ -177,6 +188,8 @@ nav {
     text-shadow: var(--neon-glow);
     letter-spacing: 4px;
     animation: logoGlow 2.8s ease-in-out infinite;
+    will-change: text-shadow;
+    transform: translateZ(0);
 }
 .logo a.text-logo{
     font-size: 1.125rem;
@@ -191,6 +204,7 @@ nav ul {
     list-style: none;
     gap: 34px;
     align-items: center;
+    will-change: transform;
 }
 
 nav a {
@@ -201,8 +215,9 @@ nav a {
     font-size: 0.86rem;
     letter-spacing: 2px;
     text-transform: uppercase;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease, opacity 0.3s ease, text-shadow 0.3s ease;
     opacity: 0.84;
+    transform: translateZ(0);
 }
 
 nav a::before {
@@ -215,6 +230,8 @@ nav a::before {
     background: linear-gradient(90deg, var(--primary), var(--accent-2), var(--accent));
     transition: width 0.35s ease;
     box-shadow: var(--neon-glow);
+    will-change: width;
+    transform: translateZ(0);
 }
 
 nav a:hover,
@@ -464,8 +481,8 @@ nav a.active::before {
 }
 
 @keyframes floatCard {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -12px, 0); }
 }
 
 .float-card .float-label {
@@ -3251,5 +3268,68 @@ nav.container.is-visible {
     .code-line::before {
         width: 1.6em;
         margin-right: 0.8em;
+    }
+}
+
+/* ===== PERFORMANCE OPTIMIZATION ===== */
+@supports (display: grid) {
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+/* GPU Acceleration for smooth animations */
+@supports (will-change: transform) {
+    .reveal,
+    .hero-content,
+    .hero-visual,
+    .float-card,
+    nav a,
+    .btn,
+    .stat-mini,
+    .mobile-menu-drawer,
+    .mobile-menu-overlay {
+        will-change: auto;
+    }
+
+    .hero-content::before {
+        will-change: transform;
+    }
+
+    .btn::before {
+        will-change: transform;
+    }
+
+    nav a::before {
+        will-change: width;
+    }
+}
+
+/* Reduce particle count on low-end devices */
+@media (max-width: 480px) {
+    body::before,
+    body::after {
+        width: 28rem;
+        height: 28rem;
+        filter: blur(80px);
+        opacity: 0.15;
+    }
+}
+
+/* Optimize animations for smaller screens */
+@media (max-width: 768px) {
+    body::before,
+    body::after {
+        animation-duration: 20s;
+    }
+
+    @keyframes logoGlow {
+        0%, 100% { text-shadow: 0 0 6px rgba(126, 249, 198, 0.6); }
+        50% { text-shadow: 0 0 16px rgba(126, 249, 198, 0.8); }
     }
 }

@@ -1,3 +1,81 @@
+// Feature detection and performance optimization
+if (!window.requestAnimationFrame) {
+    window.requestAnimationFrame = function(callback) {
+        return setTimeout(callback, 1000 / 60);
+    };
+}
+if (!window.cancelAnimationFrame) {
+    window.cancelAnimationFrame = function(id) {
+        clearTimeout(id);
+    };
+}
+
+// Polyfill untuk IntersectionObserver (untuk browser lama)
+if (!window.IntersectionObserver) {
+    window.IntersectionObserver = function(callback, options = {}) {
+        const threshold = options.threshold || 0;
+        const rootMargin = parseMargin(options.rootMargin || '0px');
+        
+        return {
+            observe(el) {
+                function check() {
+                    const rect = el.getBoundingClientRect();
+                    const inView = rect.top + rootMargin.top < window.innerHeight &&
+                                 rect.bottom + rootMargin.bottom > 0;
+                    callback([{target: el, isIntersecting: inView}]);
+                }
+                window.addEventListener('scroll', check, { passive: true });
+                window.addEventListener('resize', check, { passive: true });
+                check();
+            }
+        };
+    };
+    
+    function parseMargin(str) {
+        const parts = str.split(' ').map(p => parseInt(p) || 0);
+        return {top: parts[0], right: parts[1] || parts[0], bottom: parts[2] || parts[0], left: parts[3] || parts[1] || parts[0]};
+    }
+}
+
+// Smooth scroll polyfill untuk browser yang tidak support
+if (!CSS.supports('scroll-behavior', 'smooth')) {
+    window.scrollTo = (function() {
+        const original = window.scrollTo;
+        return function(x, y) {
+            if (typeof x === 'object' && x.behavior === 'smooth') {
+                const target = x.top !== undefined ? x.top : window.scrollY;
+                smoothScroll(target);
+            } else {
+                original.call(window, x, y);
+            }
+        };
+    })();
+    
+    function smoothScroll(target) {
+        const start = window.scrollY;
+        const distance = target - start;
+        const duration = 500;
+        const startTime = performance.now();
+        
+        function animation(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            window.scrollY !== window.scrollY + distance * easeInOutQuad(progress) &&
+                window.scroll(0, start + distance * easeInOutQuad(progress));
+            
+            if (progress < 1) {
+                requestAnimationFrame(animation);
+            }
+        }
+        
+        function easeInOutQuad(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+        
+        requestAnimationFrame(animation);
+    }
+}
+
 // Generate random stars
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -5,6 +83,7 @@ function generateStars() {
     const starfield = document.getElementById('starfield');
     if (!starfield || prefersReducedMotion) return;
 
+    const fragment = document.createDocumentFragment();
     for (let i = 0; i < 48; i++) {
         const star = document.createElement('div');
         star.className = 'star';
@@ -15,21 +94,26 @@ function generateStars() {
         star.style.top = Math.random() * 100 + '%';
         star.style.animationDelay = Math.random() * 4 + 's';
         star.style.opacity = (Math.random() * 0.8 + 0.2).toFixed(2);
-        starfield.appendChild(star);
+        star.style.willChange = 'opacity';
+        fragment.appendChild(star);
     }
+    starfield.appendChild(fragment);
 }
 
-// mesh/particle background
+// mesh/particle background with optimized rendering
 function initMeshBackground() {
     const canvas = document.getElementById('meshCanvas');
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
     if (!ctx) return;
 
     const particles = [];
-    const particleCount = window.innerWidth < 768 ? 24 : 42;
+    const particleCount = window.innerWidth < 768 ? 20 : 35;
     let animationFrame;
+    let lastTime = performance.now();
+    const fps = 60;
+    const frameInterval = 1000 / fps;
 
     function resizeCanvas() {
         const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -46,44 +130,58 @@ function initMeshBackground() {
             particles.push({
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
-                vx: (Math.random() - 0.5) * 0.45,
-                vy: (Math.random() - 0.5) * 0.45,
-                r: Math.random() * 2.2 + 1.2
+                vx: (Math.random() - 0.5) * 0.35,
+                vy: (Math.random() - 0.5) * 0.35,
+                r: Math.random() * 2 + 1
             });
         }
     }
 
-    function drawMesh() {
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    function drawMesh(timestamp) {
+        const elapsed = timestamp - lastTime;
+        
+        if (elapsed < frameInterval) {
+            animationFrame = requestAnimationFrame(drawMesh);
+            return;
+        }
+        
+        lastTime = timestamp - (elapsed % frameInterval);
 
-        particles.forEach((particle, index) => {
-            particle.x += particle.vx;
-            particle.y += particle.vy;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(126, 249, 198, 0.75)';
 
-            if (particle.x < 0 || particle.x > window.innerWidth) particle.vx *= -1;
-            if (particle.y < 0 || particle.y > window.innerHeight) particle.vy *= -1;
+        const distanceThreshold = 120;
+        const distanceSq = distanceThreshold * distanceThreshold;
+
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
+            if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
 
             ctx.beginPath();
-            ctx.fillStyle = 'rgba(126, 249, 198, 0.8)';
-            ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
             ctx.fill();
 
-            for (let j = index + 1; j < particles.length; j++) {
+            for (let j = i + 1; j < particles.length; j++) {
                 const other = particles[j];
-                const dx = particle.x - other.x;
-                const dy = particle.y - other.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const dx = p.x - other.x;
+                const dy = p.y - other.y;
+                const distSq = dx * dx + dy * dy;
 
-                if (distance < 120) {
+                if (distSq < distanceSq) {
+                    const distance = Math.sqrt(distSq);
                     ctx.beginPath();
-                    ctx.strokeStyle = `rgba(126, 249, 198, ${0.2 - distance / 1000})`;
-                    ctx.lineWidth = 0.8;
-                    ctx.moveTo(particle.x, particle.y);
+                    ctx.strokeStyle = `rgba(126, 249, 198, ${Math.max(0, 0.2 - distance / 1000)})`;
+                    ctx.lineWidth = 0.7;
+                    ctx.moveTo(p.x, p.y);
                     ctx.lineTo(other.x, other.y);
                     ctx.stroke();
                 }
             }
-        });
+        }
 
         if (!prefersReducedMotion && !document.hidden) {
             animationFrame = requestAnimationFrame(drawMesh);
@@ -92,19 +190,23 @@ function initMeshBackground() {
 
     resizeCanvas();
     createParticles();
-    drawMesh();
+    requestAnimationFrame(drawMesh);
 
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        resizeCanvas();
-        createParticles();
-        if (prefersReducedMotion) drawMesh();
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            resizeCanvas();
+            createParticles();
+        }, 250);
     });
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             cancelAnimationFrame(animationFrame);
         } else if (!prefersReducedMotion) {
-            drawMesh();
+            lastTime = performance.now();
+            requestAnimationFrame(drawMesh);
         }
     });
 }
@@ -170,7 +272,7 @@ internalLinks.forEach(anchor => {
     });
 });
 
-// Scroll reveal animation
+// Scroll reveal animation with Intersection Observer
 const observerOptions = {
     threshold: 0.12,
     rootMargin: '0px 0px -50px 0px'
@@ -224,6 +326,18 @@ function setStickyNav() {
     nav.classList.toggle('is-visible', isVisible);
 }
 
+// Optimized Sticky Nav with debounce
+let scrollTimeout;
+function setStickyNav() {
+    if (!nav) return;
+
+    const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollProgress = scrollableDistance > 0 ? window.scrollY / scrollableDistance : 0;
+    const isVisible = scrollProgress >= 0.15;
+
+    nav.classList.toggle('is-visible', isVisible);
+}
+
 window.addEventListener('scroll', setStickyNav, { passive: true });
 window.addEventListener('resize', setStickyNav, { passive: true });
 window.addEventListener('load', setStickyNav);
@@ -233,7 +347,7 @@ setStickyNav();
 generateStars();
 initMeshBackground();
 
-// Typing effect
+// Optimized Typing effect with better performance
 const typingElement = document.querySelector('.typing-effect');
 if (typingElement && prefersReducedMotion) {
     typingElement.textContent = 'Custom OJS templates, plugins, and scholarly publishing systems.';
@@ -248,6 +362,8 @@ if (typingElement && prefersReducedMotion) {
     let textIndex = 0;
     let charIndex = 0;
     let isDeleting = false;
+    let typeTimeout;
+    let lastUpdateTime = 0;
 
     function typeEffect() {
         const currentText = texts[textIndex % texts.length];
@@ -259,7 +375,7 @@ if (typingElement && prefersReducedMotion) {
 
         if (!isDeleting && charIndex > currentText.length) {
             isDeleting = true;
-            setTimeout(typeEffect, 1400);
+            typeTimeout = setTimeout(typeEffect, 1400);
             return;
         }
 
@@ -269,8 +385,18 @@ if (typingElement && prefersReducedMotion) {
             charIndex = 0;
         }
 
-        setTimeout(typeEffect, isDeleting ? 55 : 90);
+        typeTimeout = setTimeout(typeEffect, isDeleting ? 50 : 85);
     }
 
-    typeEffect();
+    // Start typing effect after DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', typeEffect);
+    } else {
+        typeEffect();
+    }
+
+    // Cleanup on unload
+    window.addEventListener('beforeunload', () => {
+        clearTimeout(typeTimeout);
+    });
 }
